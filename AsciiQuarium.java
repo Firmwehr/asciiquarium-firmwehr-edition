@@ -1,8 +1,15 @@
-package com.github.firmwehr.gentle;
-
 class AsciiQuarium {
-	public static void main(String[] args) {
-		Palette palette = new Palette().init(new int[]{0, 1, 2, 3, 4, 5, 6, 7});
+	public static void main(String[] args) throws Exception {
+		int[] colorMapping = new int[8];
+		colorMapping[0] = 0;
+		colorMapping[1] = 1;
+		colorMapping[2] = 2;
+		colorMapping[3] = 3;
+		colorMapping[4] = 4;
+		colorMapping[5] = 5;
+		colorMapping[6] = 6;
+		colorMapping[7] = 7;
+		Palette palette = new Palette().init(colorMapping);
 		Screen screen = new Screen().init(191, 45);
 		Images images = new Images().init();
 		EntityFactory entityFactory = new EntityFactory().init(images);
@@ -11,10 +18,9 @@ class AsciiQuarium {
 		Driver driver = new Driver().init(screen, palette, images, entityFactory, random);
 
 		while (true) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			/* Thread.sleep(100); */
+			if (System.in.read() < 0) {
+				return;
 			}
 			driver.tick();
 		}
@@ -45,10 +51,10 @@ class Random {
 		return next() % max;
 	}
 
-	// https://rosettacode.org/wiki/Linear_congruential_generator#Java
+	/* https://rosettacode.org/wiki/Linear_congruential_generator#Java */
 	public int next() {
-		int modulus = 2147483646; // 2^31 -1
-		seed = (seed * 1_103_515_245 + 12_345) % modulus;
+		int modulus = 2147483646; /* 2^31 -1 */
+		seed = (seed * 1103515245 + 12345) % modulus;
 		if (seed < 0) {
 			seed = -seed;
 		}
@@ -80,13 +86,13 @@ class Driver {
 		return this;
 	}
 
-	private void initializeStartEntities() {
+	public void initializeStartEntities() {
 		int amountOfWaterSegments = screen.width / images.waterLineSegment[0].width;
 		if (screen.width % images.waterLineSegment[0].width > 0) {
-			amountOfWaterSegments++;
+			amountOfWaterSegments = amountOfWaterSegments + 1;
 		}
 		maxEntities = maxEntities + amountOfWaterSegments;
-		maxEntities = maxEntities + 1; // castle
+		maxEntities = maxEntities + 1; /* castle */
 		int seaweedCount = random.nextInRange(10) + 2;
 		maxEntities = maxEntities + seaweedCount;
 
@@ -97,34 +103,42 @@ class Driver {
 		initializeCastle();
 	}
 
-	private void initializeSeaweed(int seaweedCount) {
-		for (int i = 0; i < seaweedCount; i++) {
+	public void initializeSeaweed(int seaweedCount) {
+		int i = 0;
+		while (i < seaweedCount) {
 			entities[liveEntities + i] = entityFactory.newSeaweed(screen, random);
+			i = i + 1;
 		}
 		liveEntities = liveEntities + seaweedCount;
 	}
 
-	private void initializeCastle() {
+	public void initializeCastle() {
 		this.entities[liveEntities] = entityFactory.newCastle(screen);
 		liveEntities = liveEntities + 1;
 	}
 
-	private void initializeWaterSegments(int amountOfWaterSegments) {
+	public void initializeWaterSegments(int amountOfWaterSegments) {
 		Image image = images.waterLineSegment[0];
 		int currentX = 0;
-		for (int i = 0; i < amountOfWaterSegments; i++) {
+		int i = 0;
+		while (i < amountOfWaterSegments) {
 			this.entities[liveEntities + i] = new Entity().init(image, currentX, 4, 0);
 			currentX = currentX + image.width;
+			i = i + 1;
 		}
 		liveEntities = liveEntities + amountOfWaterSegments;
 	}
 
 	public void tick() {
-		for (int i = 0; i < liveEntities; i++) {
-			Entity entity = entities[i];
-			if (entity.isOutOfBounds(screen)) {
-				entities[i] = entities[liveEntities - 1];
-				liveEntities = liveEntities - 1;
+		{
+			int i = 0;
+			while (i < liveEntities) {
+				Entity entity = entities[i];
+				if (entity.isOutOfBounds(screen)) {
+					entities[i] = entities[liveEntities - 1];
+					liveEntities = liveEntities - 1;
+				}
+				i = i + 1;
 			}
 		}
 
@@ -146,9 +160,11 @@ class Driver {
 			liveEntities = liveEntities + 1;
 		}
 
-		for (int i = 0; i < liveEntities; i++) {
+		int i = 0;
+		while (i < liveEntities) {
 			entities[i].move();
 			entities[i].draw(screen);
+			i = i + 1;
 		}
 		screen.draw(palette);
 	}
@@ -171,9 +187,10 @@ class Palette {
 class Screen {
 	public int width;
 	public int height;
-	// [Y][X]
-	// [unused] [unused] [char]  [color]
-	//  1 Byte  1 Byte   1 Byte  1 Byte
+	/* [Y][X]
+	 * [unused] [unused] [char]  [color]
+	 *  1 Byte  1 Byte   1 Byte  1 Byte
+	 */
 	public int[][] data;
 
 	public Screen init(int width, int height) {
@@ -194,7 +211,7 @@ class Screen {
 		if (x >= width || y >= height || x < 0 || y < 0) {
 			return;
 		}
-		// ignore if character is smaller than a space ' '
+		/* ignore if character is smaller than a space ' ' */
 		if (packed / 256 <= 32) {
 			return;
 		}
@@ -204,15 +221,17 @@ class Screen {
 	public void draw(Palette palette) {
 		gotoTop();
 
-		for (int y = 0; y < height; y++) {
+		int y = 0;
+		while (y < height) {
 			int[] line = this.data[y];
-			for (int x = 0; x < width; x++) {
+			int x = 0;
+			while (x < width) {
 				int packed = line[x];
 				int character = packed / 256;
 				int color = packed * 16777216 / 16777216;
 
 				if (character <= 32) {
-					System.out.write(' ');
+					System.out.write(32);
 				} else {
 					writeColor(palette, color);
 
@@ -222,10 +241,12 @@ class Screen {
 					}
 				}
 
-				// reset after drawing
+				/* reset after drawing */
 				line[x] = 0;
+				x = x + 1;
 			}
-			System.out.write(10); // \n
+			System.out.write(10); /* \n */
+			y = y + 1;
 		}
 
 		resetColor();
@@ -233,40 +254,40 @@ class Screen {
 	}
 
 	public void resetColor() {
-		System.out.write(27); // \033
-		System.out.write(91); // [
-		System.out.write(48); // 0
-		System.out.write(109); // m
+		System.out.write(27); /* \033 */
+		System.out.write(91); /* [ */
+		System.out.write(48); /* 0 */
+		System.out.write(109); /* m */
 	}
 
 	public void writeColor(Palette palette, int color) {
-		System.out.write(27); // \033
-		System.out.write(91); // [
+		System.out.write(27); /* \033 */
+		System.out.write(91); /* [ */
 		if (color >= 10) {
-			System.out.write(50); // 2
-			System.out.write(59); // ;
-			color -= 10;
+			System.out.write(50); /* 2 */
+			System.out.write(59); /* ; */
+			color = color - 10;
 		}
-		System.out.write(51); // 3
+		System.out.write(51); /* 3 */
 		System.out.write(palette.getAsAsciiChar(color));
-		System.out.write(109); // m
+		System.out.write(109); /* m */
 	}
 
 	public void gotoTop() {
-		// \x1b[0;0H | Move to top left
-		System.out.write(27); // \033
-		System.out.write(91); // [
-		System.out.write(48); // 0
-		System.out.write(59); // ;
-		System.out.write(48); // 0
-		System.out.write(72); // H
+		/* \x1b[0;0H | Move to top left */
+		System.out.write(27); /* \033 */
+		System.out.write(91); /* [ */
+		System.out.write(48); /* 0 */
+		System.out.write(59); /* ; */
+		System.out.write(48); /* 0 */
+		System.out.write(72); /* H */
 
 		System.out.flush();
 	}
 }
 
 class Image {
-	// [Y][X]
+	/* [Y][X] */
 	public int[][] data;
 	public int width;
 	public int height;
@@ -276,29 +297,35 @@ class Image {
 		this.height = height;
 		this.data = new int[height][];
 
-		for (int y = 0; y < height; y++) {
+		int y = 0;
+		while (y < height) {
 			int[] line = new int[width];
 			this.data[y] = line;
+			y = y + 1;
 		}
 
 		return this;
 	}
 
 	public Image setPixel(int x, int y, int character, int color) {
-		// [unused] [unused] [char]  [color]
-		//  1 Byte  1 Byte   1 Byte  1 Byte
+		/* [unused] [unused] [char]  [color] */
+		/*  1 Byte  1 Byte   1 Byte  1 Byte */
 		this.data[y][x] = color + character * 256;
 
 		return this;
 	}
 
 	public void draw(Screen screen, int xStart, int yStart) {
-		for (int y = 0; y < height; y++) {
+		int y = 0;
+		while (y < height) {
 			int[] line = this.data[y];
-			for (int x = 0; x < width; x++) {
+			int x = 0;
+			while (x < width) {
 				int pixel = line[x];
 				screen.setPixelPacked(x + xStart, y + yStart, pixel);
+				x = x + 1;
 			}
+			y = y + 1;
 		}
 	}
 }
@@ -309,18 +336,18 @@ class Entity {
 	public int positionY;
 	public Image image;
 
-	// BEGIN MONSTER
+	/* BEGIN MONSTER */
 	public Images images;
 	public int monsterImageIndex;
 	public boolean isMonster;
 	public int tickCounter;
-	// END MONSTER
+	/* END MONSTER */
 
-	// BEGIN SEAWEED
+	/* BEGIN SEAWEED */
 	public int height;
 	public Image flippedImage;
 	public Image originalImage;
-	// END SEAWEED
+	/* END SEAWEED */
 
 	public Entity init(Image image, int startX, int startY, int directionX) {
 		this.image = image;
@@ -344,12 +371,14 @@ class Entity {
 		Image flippedImage = new Image().init(2, height);
 
 		int[] characters = new int[2];
-		characters[0] = '(';
-		characters[1] = ')';
-		for (int y = 0; y < height; y++) {
+		characters[0] = 40; /* ( */
+		characters[1] = 41; /* ) */
+		int y = 0;
+		while (y < height) {
 			int x = y % 2;
 			image.setPixel(x, y, characters[x], 2);
 			flippedImage.setPixel((x + 1) % 2, y, characters[(x + 1) % 2], 2);
+			y = y + 1;
 		}
 
 		this.init(image, startX, startY, 0);
@@ -374,7 +403,7 @@ class Entity {
 			} else {
 				image = originalImage;
 			}
-			tickCounter++;
+			tickCounter = tickCounter + 1;
 		}
 	}
 
@@ -498,26 +527,27 @@ class EntityFactory {
 	}
 }
 
-// @formatter:off
+/* @formatter:off */
 class Images {
 
-	public Image[] waterLineSegment = new Image[1];
+	public Image[] waterLineSegment;
 	public int waterLineSegmentCount;
-	public Image[] castleImage = new Image[1];
+	public Image[] castleImage;
 	public int castleImageCount;
-	public Image[] fishImage = new Image[16];
+	public Image[] fishImage;
 	public int fishImageCount;
-	public Image[] sharkImage = new Image[2];
+	public Image[] sharkImage;
 	public int sharkImageCount;
-	public Image[] shipImage = new Image[2];
+	public Image[] shipImage;
 	public int shipImageCount;
-	public Image[] bigFishImage = new Image[2];
+	public Image[] bigFishImage;
 	public int bigFishImageCount;
-	public Image[] monsterImage = new Image[8];
+	public Image[] monsterImage;
 	public int monsterImageCount;
 
 	public Images init() {
 		waterLineSegmentCount = 1;
+		waterLineSegment = new Image[1];
 		waterLineSegment[0] = new Image().init(33, 4)
 			.setPixel(0, 0, 126, 4)
 			.setPixel(1, 0, 126, 4)
@@ -653,6 +683,7 @@ class Images {
 			.setPixel(32, 3, 32, 4);
 
 		castleImageCount = 1;
+		castleImage = new Image[1];
 		castleImage[0] = new Image().init(31, 13)
 			.setPixel(0, 0, 32, 17)
 			.setPixel(1, 0, 32, 17)
@@ -997,6 +1028,7 @@ class Images {
 			.setPixel(29, 12, 124, 17);
 
 		fishImageCount = 16;
+		fishImage = new Image[16];
 		fishImage[0] = new Image().init(14, 6)
 			.setPixel(0, 0, 32, 3)
 			.setPixel(1, 0, 32, 3)
@@ -1529,6 +1561,7 @@ class Images {
 			.setPixel(4, 2, 92, 6);
 
 		sharkImageCount = 2;
+		sharkImage = new Image[2];
 		sharkImage[0] = new Image().init(53, 10)
 			.setPixel(0, 0, 32, 6)
 			.setPixel(1, 0, 32, 6)
@@ -2399,6 +2432,7 @@ class Images {
 			.setPixel(50, 9, 96, 6);
 
 		shipImageCount = 2;
+		shipImage = new Image[2];
 		shipImage[0] = new Image().init(25, 6)
 			.setPixel(0, 0, 32, 3)
 			.setPixel(1, 0, 32, 3)
@@ -2659,6 +2693,7 @@ class Images {
 			.setPixel(24, 5, 47, 3);
 
 		bigFishImageCount = 2;
+		bigFishImage = new Image[2];
 		bigFishImage[0] = new Image().init(34, 14)
 			.setPixel(0, 0, 32, 13)
 			.setPixel(1, 0, 95, 1)
@@ -3479,6 +3514,7 @@ class Images {
 			.setPixel(19, 13, 96, 13);
 
 		monsterImageCount = 8;
+		monsterImage = new Image[8];
 		monsterImage[0] = new Image().init(66, 5)
 			.setPixel(0, 0, 32, 2)
 			.setPixel(1, 0, 32, 2)
@@ -5682,4 +5718,4 @@ class Images {
 		return this;
 	}
 }
-// @formatter:on
+/* @formatter:on */

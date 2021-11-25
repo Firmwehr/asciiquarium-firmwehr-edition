@@ -103,9 +103,10 @@ def process(lines: str):
             with_mask.append((frames[i], frames[i+1]))
             i = i + 2
 
-        fields.append(f"public Image[] {name} = new Image[{len(with_mask)}];")
+        fields.append(f"public Image[] {name};")
         fields.append(f"public int {name}Count;")
         inits.append(f"{name}Count = {len(with_mask)};")
+        inits.append(f"{name} = new Image[{len(with_mask)}];")
         for index, item in enumerate(with_mask):
             image, mask = item
             width, height = get_image_size(image)
