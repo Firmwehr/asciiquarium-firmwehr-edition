@@ -48,7 +48,7 @@ def get_mask_color(mask: list[str], index: int, default: str):
     raise RuntimeError(":( " + char)
 
 
-def format_image_init(default_color: str, image: str, mask: str) -> str:
+def format_image_init(var_name: str, default_color: str, image: str, mask: str) -> str:
     result = ""
 
     image_data = []
@@ -71,9 +71,9 @@ def format_image_init(default_color: str, image: str, mask: str) -> str:
             if char == '?':
                 char = '  '
             if mask_color != -1:
-                result += f"      .setPixel({x}, {y}, {ord(char[0])}, {mask_color})" + "\n"
+                result += f"    {var_name}.setPixel({x}, {y}, {ord(char[0])}, {mask_color});" + "\n"
 
-    return "      " + result.strip() + ";\n"
+    return "    " + result.strip() + ";\n"
 
 
 def process(lines: str):
@@ -111,8 +111,9 @@ def process(lines: str):
             image, mask = item
             width, height = get_image_size(image)
             text = ""
-            text = text + f"{name}[{index}] = new Image().init({width}, {height})\n"
-            text = text + format_image_init(default_colors[name], image, mask)
+            text = f"Image {name}_image{index} = new Image().init({width}, {height});\n"
+            text = text + f"    {name}[{index}] = {name}_image{index};\n"
+            text = text + format_image_init(f"{name}_image{index}", default_colors[name], image, mask)
             inits.append(text)
 
     print("class Images {\n")
